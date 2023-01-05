@@ -9,6 +9,7 @@ import ipaddress
 import argparse
 import os
 from tabulate import tabulate
+#, SEPARATING_LINE
 # pip install azure-identity
 
 from azure.identity import DefaultAzureCredential
@@ -90,9 +91,10 @@ for virtualHubName in vhub_names:
     async_results[virtualHubName][table['name']] = results.headers['Azure-AsyncOperation']
 
 
+table = []
 for virtualHubName in async_results:
-  for table in async_results[virtualHubName]:
-    async_url = async_results[virtualHubName][table]
+  for res in async_results[virtualHubName]:
+    async_url = async_results[virtualHubName][res]
     sleep_time = 0
 
     while True:
@@ -107,19 +109,49 @@ for virtualHubName in async_results:
         break
 
     data = results.json()
-    matches = []
+    #table[virtualHubName] = []
     for net in data['properties']['output']['value']:
 
       prefix = ipaddress.ip_network(net['addressPrefixes'][0])
-      descr = f"{prefix} - {net['nextHopType']}\n\tNext Hop: {net['nextHops'][0]}\n\tOrigin: {net['routeOrigin']}"
+      entry = [
+        virtualHubName,
+        res,
+        prefix,
+        net['nextHopType'],
+        "/".join(net['nextHops'][0].split('/')[7:]), #Shorten
+      ]
+      #descr = f"{prefix} - {net['nextHopType']}\n\tNext Hop: {net['nextHops'][0]}\n\tOrigin: {net['routeOrigin']}"
 
+      # If filtering all all posible matches
       if filter:
         if prefix.overlaps(filter):
-          matches.append(descr)
+          best = True
+          # Attempt to find best route, by removing anything that contains the current prefix.
+          for i in table:
+            if i[0] == virtualHubName and i[1] == res:
+              if i[2].supernet_of(prefix):
+                table.remove(i)
+              else:
+                best = False
+          if best:
+            table.append(entry)
       else:
-        matches.append(descr)
+        table.append(entry)
+  table.append(["","","","",""])
 
-    if matches:
-      print(f"\n\nMatched {len(matches)} prefix for {virtualHubName} table: {table}")
-      for i in matches:
-        print(i)
+#if matches:
+#  print(f"\n\nMatched {len(matches)} prefix for {virtualHubName} table: {table}")#
+
+  #for i in matches:
+   # print(i)
+
+
+headers = [
+  "Hub",
+  "Table",
+  "Prefix",
+  "Route Type",
+  "Next Hop"
+]
+
+print(tabulate(table,headers=headers))
