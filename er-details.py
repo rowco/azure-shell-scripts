@@ -43,6 +43,8 @@ print("Finding ExpressRoute Circuits:")
 
 for circuit in circuits:
   circuitName = circuit['name']
+  if not circuit['properties']['peerings']:
+    continue
   peeringName = circuit['properties']['peerings'][0]['name']
   resourceGroupName = circuit['id'].split('/')[4]
   for devicePath in ['primary','secondary']:
@@ -83,10 +85,14 @@ sys.stdout.write('\r')
 
 table = {}
 for path_key in async_results:
+  if not async_results[path_key]['arp']['value']:
+    arp = { 'ipAddress':'--', 'macAddress':'--'}
+  else:
+    arp = async_results[path_key]['arp']['value'][0]
   table[path_key] = [
     path_key,
-    async_results[path_key]['arp']['value'][0]['ipAddress'],
-    async_results[path_key]['arp']['value'][0]['macAddress'],
+    arp['ipAddress'],
+    arp['macAddress'],
     async_results[path_key]['rts']['value'][0]['as'],
     async_results[path_key]['rts']['value'][0]['upDown'],
     async_results[path_key]['rts']['value'][0]['statePfxRcd'],
