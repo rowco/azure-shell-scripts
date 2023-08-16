@@ -47,6 +47,7 @@ except:
 print(f"Looking for {filter}")
 
 nsgs = {}
+table = []
 
 results = requests.get(f"https://management.azure.com/subscriptions?api-version=2022-12-01", headers=headers, verify=False)
 result_json = results.json()
@@ -97,8 +98,42 @@ for subid in subscriptions:
       d_match = compare_prefixes(d,filter)
       
       if s_match or d_match:
-        print(f"SUB: {subscriptions[subid]['displayName']} NSG: {nsg['name']} RULE: {rule['name']} - {s} / {d} - {s_match} / {d_match}")
-      #print(f"PROPERITES: {rule['properties']}")
+
+        table.append([
+          subscriptions[subid]['displayName'],
+          nsg['name'],
+          rule['name'],
+          prop['direction'],
+          s,
+          d,
+          s_match,
+          d_match
+        ])
+
+        #print(nsg['properties'].keys())
+        #print(rule['properties'].keys())
+        #print(f"SUB: {subscriptions[subid]['displayName']} NSG: {nsg['name']} RULE: {rule['name']} [{prop['direction']}] - {s} / {d} - {s_match} / {d_match}")
+        #print(f"PROPERITES: {rule['properties']}")
 
 
+#if matches:
+#  print(f"\n\nMatched {len(matches)} prefix for {virtualHubName} table: {table}")#
+
+  #for i in matches:
+   # print(i)
+
+
+headers = [
+  "Subscription",
+  "NSG",
+  "Rule",
+  "Direction",
+  "Source",
+  "Destination",
+  "Source Match",
+  "Destination Match"
+]
+
+print(tabulate(table,headers=headers))
+print(f"\n{len(table)} matches")
 
